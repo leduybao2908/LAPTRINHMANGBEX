@@ -1,34 +1,47 @@
 package smtp;
 
-import javax.swing.*;
-
-import smtp.client.FilePanel;
-import smtp.client.ChatPanel;
-import smtp.mail.MailSender;
-import smtp.server.FileServer;
-
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Font;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.Socket;
+
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
+import javax.swing.SwingUtilities;
+
+import smtp.client.ChatPanel;
+import smtp.client.FilePanel;
+import smtp.mail.MailSender;
+import smtp.server.FileServer;
 
 /**
  * Client main UI with bottom tabs. On startup asks for name and opens control connection.
  */
 public class MainFrame extends JFrame {
 
-    private final String clientName;
+    private String clientName;
+    private String loggedInUser;
     private final DataOutputStream controlOut;
     private final DataInputStream controlIn;
 
     private final ChatPanel chatPanel;
     private final FilePanel filePanel;
-    private final MailSender mailSender; // <= thêm vào
+    private MailSender mailSender;
+    private JLabel statusLabel;
 
-    public MainFrame(String serverHost, int controlPort) throws Exception {
-        // ask name
-        String name = JOptionPane.showInputDialog(this, "Enter your name:", "Name", JOptionPane.PLAIN_MESSAGE);
-        if (name == null || name.trim().isEmpty()) name = "Client" + (int)(Math.random()*1000);
+    public MainFrame(String serverHost, int controlPort, String username) throws Exception {
+        this.loggedInUser = username;
+        
+        // ask name for chat/file
+        String name = JOptionPane.showInputDialog(this, "Enter your display name for chat:", "Display Name", JOptionPane.PLAIN_MESSAGE);
+        if (name == null || name.trim().isEmpty()) name = username;
         clientName = name;
 
         // connect control socket
@@ -40,30 +53,99 @@ public class MainFrame extends JFrame {
         controlOut.writeUTF(clientName);
         controlOut.flush();
 
-        setTitle("Client - " + clientName);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(900, 600);
+        setTitle("📧 Mail & Chat System - " + loggedInUser);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        setSize(1000, 700);
         setLayout(new BorderLayout());
+
+        // Top panel with gradient background
+        JPanel topPanel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                super.paintComponent(g);
+                java.awt.Graphics2D g2d = (java.awt.Graphics2D) g;
+                java.awt.GradientPaint gp = new java.awt.GradientPaint(
+                    0, 0, new java.awt.Color(41, 128, 185), 
+                    getWidth(), 0, new java.awt.Color(109, 213, 250)
+                );
+                g2d.setPaint(gp);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        topPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 15, 10, 15));
+        
+        statusLabel = new JLabel("  👤 " + loggedInUser + " • 💬 " + clientName);
+        statusLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        statusLabel.setForeground(java.awt.Color.WHITE);
+        topPanel.add(statusLabel, BorderLayout.WEST);
+        
+        JButton logoutButton = new JButton("🚪 Logout");
+        logoutButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        logoutButton.setBackground(new java.awt.Color(231, 76, 60));
+        logoutButton.setForeground(java.awt.Color.WHITE);
+        logoutButton.setFocusPainted(false);
+        logoutButton.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 20, 8, 20));
+        logoutButton.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        logoutButton.addActionListener(e -> logout());
+        topPanel.add(logoutButton, BorderLayout.EAST);
+        add(topPanel, BorderLayout.NORTH);
 
         // ====== TABS ======
         JTabbedPane tabs = new JTabbedPane();
+        tabs.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        tabs.setBackground(java.awt.Color.WHITE);
 
         // ---- MAIL TAB ----
-        mailSender = new MailSender();   // TAKE REAL MAIL UI
-        tabs.addTab("Mail", mailSender);
-
-        // ---- FILE TAB ----
-        filePanel = new FilePanel(clientName);
-        tabs.addTab("File", filePanel);
+        mailSender = new MailSender(loggedInUser);
+        tabs.addTab("  📧 Mail  ", mailSender);
 
         // ---- CHAT TAB ----
         chatPanel = new ChatPanel(clientName, controlOut);
-        tabs.addTab("Chat", chatPanel);
+        tabs.addTab("  💬 Chat  ", chatPanel);
+
+        // ---- FILE TAB ----
+        filePanel = new FilePanel(clientName);
+        tabs.addTab("  📁 File Transfer  ", filePanel);
 
         add(tabs, BorderLayout.CENTER);
 
+        // Window close handler
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                logout();
+            }
+        });
+
         // listener
         new Thread(this::controlListener).start();
+    }
+
+    private void logout() {
+        int choice = JOptionPane.showConfirmDialog(this, 
+            "Are you sure you want to logout?", 
+            "Confirm Logout", 
+            JOptionPane.YES_NO_OPTION);
+        
+        if (choice == JOptionPane.YES_OPTION) {
+            dispose();
+            // Restart with login screen
+            SwingUtilities.invokeLater(() -> {
+                String username = LoginDialog.showLoginDialog(null);
+                if (username != null) {
+                    try {
+                        MainFrame mf = new MainFrame("localhost", FileServer.CONTROL_PORT, username);
+                        mf.setVisible(true);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(null, "Cannot connect to server: " + ex.getMessage());
+                        System.exit(0);
+                    }
+                } else {
+                    System.exit(0);
+                }
+            });
+        }
     }
 
     private void controlListener() {
@@ -93,13 +175,29 @@ public class MainFrame extends JFrame {
 
     // entry point
     public static void main(String[] args) {
+        // Set FlatLaf Look and Feel
+        try {
+            com.formdev.flatlaf.FlatLightLaf.setup();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
         SwingUtilities.invokeLater(() -> {
-            try {
-                MainFrame mf = new MainFrame("localhost", FileServer.CONTROL_PORT);
-                mf.setVisible(true);
-            } catch (Exception e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(null, "Cannot connect to server: " + e.getMessage());
+            // Show login dialog first
+            String username = LoginDialog.showLoginDialog(null);
+            
+            if (username != null) {
+                try {
+                    MainFrame mf = new MainFrame("localhost", FileServer.CONTROL_PORT, username);
+                    mf.setVisible(true);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "Cannot connect to server: " + e.getMessage());
+                    System.exit(0);
+                }
+            } else {
+                // User cancelled login
+                System.exit(0);
             }
         });
     }
