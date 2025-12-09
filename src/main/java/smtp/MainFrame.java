@@ -53,7 +53,7 @@ public class MainFrame extends JFrame {
         controlOut.writeUTF(clientName);
         controlOut.flush();
 
-        setTitle("📧 Mail & Chat System - " + loggedInUser);
+        setTitle("Mail & Chat System - " + loggedInUser);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setSize(1000, 700);
         setLayout(new BorderLayout());
@@ -74,12 +74,12 @@ public class MainFrame extends JFrame {
         };
         topPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 15, 10, 15));
         
-        statusLabel = new JLabel("  👤 " + loggedInUser + " • 💬 " + clientName);
+        statusLabel = new JLabel("  User: " + loggedInUser + " | Display: " + clientName);
         statusLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
         statusLabel.setForeground(java.awt.Color.WHITE);
         topPanel.add(statusLabel, BorderLayout.WEST);
         
-        JButton logoutButton = new JButton("🚪 Logout");
+        JButton logoutButton = new JButton("LOGOUT");
         logoutButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
         logoutButton.setBackground(new java.awt.Color(231, 76, 60));
         logoutButton.setForeground(java.awt.Color.WHITE);
@@ -97,15 +97,15 @@ public class MainFrame extends JFrame {
 
         // ---- MAIL TAB ----
         mailSender = new MailSender(loggedInUser);
-        tabs.addTab("  📧 Mail  ", mailSender);
+        tabs.addTab("  MAIL  ", mailSender);
 
         // ---- CHAT TAB ----
         chatPanel = new ChatPanel(clientName, controlOut);
-        tabs.addTab("  💬 Chat  ", chatPanel);
+        tabs.addTab("  CHAT  ", chatPanel);
 
         // ---- FILE TAB ----
         filePanel = new FilePanel(clientName);
-        tabs.addTab("  📁 File Transfer  ", filePanel);
+        tabs.addTab("  FILE TRANSFER  ", filePanel);
 
         add(tabs, BorderLayout.CENTER);
 

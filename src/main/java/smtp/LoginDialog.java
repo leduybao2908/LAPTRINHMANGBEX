@@ -66,7 +66,7 @@ public class LoginDialog extends JDialog {
         // Title Panel with icon
         JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 10));
         titlePanel.setOpaque(false);
-        JLabel titleLabel = new JLabel("📧 Mail System");
+        JLabel titleLabel = new JLabel("Mail System");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
         titleLabel.setForeground(Color.WHITE);
         titlePanel.add(titleLabel);
@@ -101,7 +101,7 @@ public class LoginDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.weightx = 0.3;
-        JLabel userLabel = new JLabel("👤 Username");
+        JLabel userLabel = new JLabel("Username:");
         userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         userLabel.setForeground(new Color(52, 73, 94));
         formPanel.add(userLabel, gbc);
@@ -136,7 +136,7 @@ public class LoginDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = 2;
         gbc.weightx = 0.3;
-        JLabel passLabel = new JLabel("🔒 Password");
+        JLabel passLabel = new JLabel("Password:");
         passLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         passLabel.setForeground(new Color(52, 73, 94));
         formPanel.add(passLabel, gbc);
@@ -172,7 +172,7 @@ public class LoginDialog extends JDialog {
         buttonPanel.setBackground(Color.WHITE);
         buttonPanel.setBorder(new EmptyBorder(20, 0, 10, 0));
         
-        loginButton = new JButton("🔐 Login");
+        loginButton = new JButton("LOGIN");
         loginButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
         loginButton.setPreferredSize(new Dimension(140, 40));
         loginButton.setBackground(new Color(46, 204, 113));
@@ -181,7 +181,7 @@ public class LoginDialog extends JDialog {
         loginButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         loginButton.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         
-        registerButton = new JButton("📝 Register");
+        registerButton = new JButton("REGISTER");
         registerButton.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         registerButton.setPreferredSize(new Dimension(140, 40));
         registerButton.setBackground(new Color(52, 152, 219));
