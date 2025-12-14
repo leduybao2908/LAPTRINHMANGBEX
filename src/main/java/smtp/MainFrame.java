@@ -18,6 +18,7 @@ import javax.swing.SwingUtilities;
 
 import smtp.client.ChatPanel;
 import smtp.client.FilePanel;
+import smtp.client.VideoCallPanel;
 import smtp.mail.MailSender;
 import smtp.server.FileServer;
 
@@ -33,6 +34,7 @@ public class MainFrame extends JFrame {
 
     private final ChatPanel chatPanel;
     private final FilePanel filePanel;
+    private final VideoCallPanel videoCallPanel;
     private MailSender mailSender;
     private JLabel statusLabel;
 
@@ -106,6 +108,10 @@ public class MainFrame extends JFrame {
         // ---- FILE TAB ----
         filePanel = new FilePanel(clientName);
         tabs.addTab("  FILE TRANSFER  ", filePanel);
+
+        // ---- VIDEO CALL TAB ----
+        videoCallPanel = new VideoCallPanel(loggedInUser);
+        tabs.addTab("  VIDEO CALL  ", videoCallPanel);
 
         add(tabs, BorderLayout.CENTER);
 
