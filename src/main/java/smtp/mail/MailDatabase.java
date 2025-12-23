@@ -67,6 +67,8 @@ public class MailDatabase {
                 body TEXT,
                 sent_date TEXT NOT NULL,
                 is_read INTEGER DEFAULT 0,
+                digital_signature TEXT,
+                is_spam INTEGER DEFAULT 0,
                 FOREIGN KEY (sender) REFERENCES users(username),
                 FOREIGN KEY (recipient) REFERENCES users(username)
             )
@@ -88,8 +90,41 @@ public class MailDatabase {
         stmt.execute(createAttachmentsTable);
         stmt.close();
 
+        // Migrate existing database schema
+        migrateDatabase();
+
         // Thêm user mặc định nếu chưa có
         createDefaultUsers();
+    }
+
+    private void migrateDatabase() {
+        try {
+            Statement stmt = connection.createStatement();
+            
+            // Check if digital_signature column exists
+            try {
+                ResultSet rs = stmt.executeQuery("SELECT digital_signature FROM emails LIMIT 1");
+                rs.close();
+            } catch (SQLException e) {
+                // Column doesn't exist, add it
+                stmt.execute("ALTER TABLE emails ADD COLUMN digital_signature TEXT");
+                System.out.println("Added digital_signature column to emails table");
+            }
+            
+            // Check if is_spam column exists
+            try {
+                ResultSet rs = stmt.executeQuery("SELECT is_spam FROM emails LIMIT 1");
+                rs.close();
+            } catch (SQLException e) {
+                // Column doesn't exist, add it
+                stmt.execute("ALTER TABLE emails ADD COLUMN is_spam INTEGER DEFAULT 0");
+                System.out.println("Added is_spam column to emails table");
+            }
+            
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     private void createDefaultUsers() {
@@ -170,7 +205,7 @@ public class MailDatabase {
     }
 
     public boolean sendEmail(Email email) {
-        String sql = "INSERT INTO emails (sender, recipient, subject, body, sent_date) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO emails (sender, recipient, subject, body, sent_date, digital_signature, is_spam) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try {
             PreparedStatement pstmt = connection.prepareStatement(sql);
             pstmt.setString(1, email.getSender());
@@ -178,6 +213,8 @@ public class MailDatabase {
             pstmt.setString(3, email.getSubject());
             pstmt.setString(4, email.getBody());
             pstmt.setString(5, email.getSentDate().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            pstmt.setString(6, email.getDigitalSignature());
+            pstmt.setInt(7, email.isSpam() ? 1 : 0);
             
             int affectedRows = pstmt.executeUpdate();
             pstmt.close();
@@ -247,6 +284,8 @@ public class MailDatabase {
                 email.setSentDate(LocalDateTime.parse(rs.getString("sent_date"), 
                     DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                 email.setRead(rs.getInt("is_read") == 1);
+                email.setDigitalSignature(rs.getString("digital_signature"));
+                email.setSpam(rs.getInt("is_spam") == 1);
                 
                 // Load attachments
                 email.setAttachments(getAttachments(email.getId()));
@@ -282,6 +321,8 @@ public class MailDatabase {
                 email.setSentDate(LocalDateTime.parse(rs.getString("sent_date"), 
                     DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                 email.setRead(rs.getInt("is_read") == 1);
+                email.setDigitalSignature(rs.getString("digital_signature"));
+                email.setSpam(rs.getInt("is_spam") == 1);
                 
                 email.setAttachments(getAttachments(email.getId()));
                 
