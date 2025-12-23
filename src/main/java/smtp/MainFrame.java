@@ -29,6 +29,7 @@ public class MainFrame extends JFrame {
 
     private String clientName;
     private String loggedInUser;
+    private String serverHost;
     private final DataOutputStream controlOut;
     private final DataInputStream controlIn;
 
@@ -39,6 +40,7 @@ public class MainFrame extends JFrame {
     private JLabel statusLabel;
 
     public MainFrame(String serverHost, int controlPort, String username) throws Exception {
+        this.serverHost = serverHost;
         this.loggedInUser = username;
         
         // ask name for chat/file
@@ -136,11 +138,12 @@ public class MainFrame extends JFrame {
         if (choice == JOptionPane.YES_OPTION) {
             dispose();
             // Restart with login screen
+            final String currentServerHost = this.serverHost;
             SwingUtilities.invokeLater(() -> {
                 String username = LoginDialog.showLoginDialog(null);
                 if (username != null) {
                     try {
-                        MainFrame mf = new MainFrame("localhost", FileServer.CONTROL_PORT, username);
+                        MainFrame mf = new MainFrame(currentServerHost, FileServer.CONTROL_PORT, username);
                         mf.setVisible(true);
                     } catch (Exception ex) {
                         ex.printStackTrace();
@@ -189,16 +192,33 @@ public class MainFrame extends JFrame {
         }
         
         SwingUtilities.invokeLater(() -> {
-            // Show login dialog first
+            // Ask for server IP
+            String serverHost = JOptionPane.showInputDialog(null, 
+                "Nhập địa chỉ IP của Server:\n(Nhấn OK hoặc để trống để dùng localhost)", 
+                "Kết nối Server", 
+                JOptionPane.PLAIN_MESSAGE);
+            
+            if (serverHost == null) {
+                System.exit(0); // User cancelled
+                return;
+            }
+            
+            if (serverHost.trim().isEmpty()) {
+                serverHost = "localhost";
+            }
+            
+            final String finalServerHost = serverHost.trim();
+            
+            // Show login dialog
             String username = LoginDialog.showLoginDialog(null);
             
             if (username != null) {
                 try {
-                    MainFrame mf = new MainFrame("localhost", FileServer.CONTROL_PORT, username);
+                    MainFrame mf = new MainFrame(finalServerHost, FileServer.CONTROL_PORT, username);
                     mf.setVisible(true);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    JOptionPane.showMessageDialog(null, "Cannot connect to server: " + e.getMessage());
+                    JOptionPane.showMessageDialog(null, "Không thể kết nối đến server " + finalServerHost + ": " + e.getMessage());
                     System.exit(0);
                 }
             } else {

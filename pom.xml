@@ -7,8 +7,8 @@
     <version>0.1.0</version>
 
     <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <main.class>smtp.MainFrame</main.class>
     </properties>
@@ -43,7 +43,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <release>21</release>
+                    <release>17</release>
                 </configuration>
             </plugin>
 
@@ -73,8 +73,8 @@
                         <configuration>
                             <rules>
                                 <requireJavaVersion>
-                                    <version>[21,25)</version>
-                                    <message>Build requires Java 21 (LTS). Please install JDK 21 and set JAVA_HOME / PATH accordingly.</message>
+                                    <version>[17,)</version>
+                                    <message>Build requires Java 17 or higher. Please install JDK 17+ and set JAVA_HOME / PATH accordingly.</message>
                                 </requireJavaVersion>
                             </rules>
                             <fail>true</fail>
@@ -104,6 +104,15 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <mainClass>smtp.ServerStarter</mainClass>
+                </configuration>
             </plugin>
         </plugins>
     </build>

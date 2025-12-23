@@ -44,7 +44,7 @@ public class LoginDialog extends JDialog {
         mailDB = MailDatabase.getInstance();
         
         setLayout(new BorderLayout(0, 0));
-        setSize(500, 400);
+        setSize(650, 550);
         setLocationRelativeTo(parent);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setUndecorated(false);

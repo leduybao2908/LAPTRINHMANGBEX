@@ -13,11 +13,14 @@ public class Email {
     private LocalDateTime sentDate;
     private boolean isRead;
     private List<String> attachments;
+    private String digitalSignature;
+    private boolean isSpam;
 
     public Email() {
         this.attachments = new ArrayList<>();
         this.isRead = false;
         this.sentDate = LocalDateTime.now();
+        this.isSpam = false;
     }
 
     public Email(String sender, String recipient, String subject, String body) {
@@ -95,6 +98,22 @@ public class Email {
 
     public void addAttachment(String attachment) {
         this.attachments.add(attachment);
+    }
+
+    public String getDigitalSignature() {
+        return digitalSignature;
+    }
+
+    public void setDigitalSignature(String digitalSignature) {
+        this.digitalSignature = digitalSignature;
+    }
+
+    public boolean isSpam() {
+        return isSpam;
+    }
+
+    public void setSpam(boolean spam) {
+        isSpam = spam;
     }
 
     @Override

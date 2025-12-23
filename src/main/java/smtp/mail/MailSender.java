@@ -1,12 +1,36 @@
 package smtp.mail;
 
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Frame;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.Insets;
 import java.io.File;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.swing.BorderFactory;
+import javax.swing.DefaultListModel;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.table.DefaultTableModel;
 
 public class MailSender extends JPanel {
 
@@ -111,7 +135,7 @@ public class MailSender extends JPanel {
     private JPanel createInboxPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         
-        String[] columns = {"ID", "From", "Subject", "Date", "Status"};
+        String[] columns = {"ID", "From", "Subject", "Date", "Status", "Spam"};
         inboxModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -121,9 +145,10 @@ public class MailSender extends JPanel {
         inboxTable = new JTable(inboxModel);
         inboxTable.getColumnModel().getColumn(0).setPreferredWidth(50);
         inboxTable.getColumnModel().getColumn(1).setPreferredWidth(100);
-        inboxTable.getColumnModel().getColumn(2).setPreferredWidth(200);
-        inboxTable.getColumnModel().getColumn(3).setPreferredWidth(150);
+        inboxTable.getColumnModel().getColumn(2).setPreferredWidth(180);
+        inboxTable.getColumnModel().getColumn(3).setPreferredWidth(120);
         inboxTable.getColumnModel().getColumn(4).setPreferredWidth(80);
+        inboxTable.getColumnModel().getColumn(5).setPreferredWidth(60);
         
         JScrollPane scrollPane = new JScrollPane(inboxTable);
         panel.add(scrollPane, BorderLayout.CENTER);
@@ -148,7 +173,7 @@ public class MailSender extends JPanel {
     private JPanel createSentPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         
-        String[] columns = {"ID", "To", "Subject", "Date"};
+        String[] columns = {"ID", "To", "Subject", "Date", "Spam"};
         sentModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -158,8 +183,9 @@ public class MailSender extends JPanel {
         sentTable = new JTable(sentModel);
         sentTable.getColumnModel().getColumn(0).setPreferredWidth(50);
         sentTable.getColumnModel().getColumn(1).setPreferredWidth(100);
-        sentTable.getColumnModel().getColumn(2).setPreferredWidth(250);
-        sentTable.getColumnModel().getColumn(3).setPreferredWidth(150);
+        sentTable.getColumnModel().getColumn(2).setPreferredWidth(200);
+        sentTable.getColumnModel().getColumn(3).setPreferredWidth(120);
+        sentTable.getColumnModel().getColumn(4).setPreferredWidth(60);
         
         JScrollPane scrollPane = new JScrollPane(sentTable);
         panel.add(scrollPane, BorderLayout.CENTER);
@@ -227,7 +253,8 @@ public class MailSender extends JPanel {
                 email.getSender(),
                 email.getSubject(),
                 email.getSentDate().format(formatter),
-                email.isRead() ? "Read" : "Unread"
+                email.isRead() ? "Read" : "Unread",
+                email.isSpam() ? "⚠️ SPAM" : "✓"
             });
         }
     }
@@ -242,7 +269,8 @@ public class MailSender extends JPanel {
                 email.getId(),
                 email.getRecipient(),
                 email.getSubject(),
-                email.getSentDate().format(formatter)
+                email.getSentDate().format(formatter),
+                email.isSpam() ? "⚠️ SPAM" : "✓"
             });
         }
     }
@@ -276,9 +304,9 @@ public class MailSender extends JPanel {
     private void showEmailDialog(Email email) {
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Email Details", true);
         dialog.setLayout(new BorderLayout());
-        dialog.setSize(600, 400);
+        dialog.setSize(700, 500);
         
-        JPanel detailsPanel = new JPanel(new GridLayout(4, 2, 5, 5));
+        JPanel detailsPanel = new JPanel(new GridLayout(6, 2, 5, 5));
         detailsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
         detailsPanel.add(new JLabel("From:"));
@@ -289,6 +317,48 @@ public class MailSender extends JPanel {
         detailsPanel.add(new JLabel(email.getSubject()));
         detailsPanel.add(new JLabel("Date:"));
         detailsPanel.add(new JLabel(email.getSentDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
+        
+        // Spam status with Naive Bayes score
+        detailsPanel.add(new JLabel("Spam Status:"));
+        JLabel spamLabel;
+        if (email.isSpam()) {
+            // Get spam score for display
+            NaiveBayesSpamDetector nbDetector = NaiveBayesSpamDetector.getInstance();
+            double spamScore = nbDetector.getSpamScore(email.getSubject(), email.getBody());
+            spamLabel = new JLabel(String.format("⚠️ SPAM DETECTED (%.1f%% probability)", spamScore * 100));
+            spamLabel.setForeground(Color.RED);
+            spamLabel.setFont(spamLabel.getFont().deriveFont(Font.BOLD));
+        } else {
+            spamLabel = new JLabel("✓ Clean");
+            spamLabel.setForeground(new Color(0, 150, 0));
+        }
+        detailsPanel.add(spamLabel);
+        
+        // Digital signature verification
+        detailsPanel.add(new JLabel("Digital Signature:"));
+        JLabel signatureLabel;
+        if (email.getDigitalSignature() != null && !email.getDigitalSignature().isEmpty()) {
+            try {
+                String contentToVerify = email.getSubject() + email.getBody();
+                boolean isValid = DigitalSignatureUtil.verify(contentToVerify, email.getDigitalSignature());
+                if (isValid) {
+                    signatureLabel = new JLabel("✓ Verified - Email is authentic");
+                    signatureLabel.setForeground(new Color(0, 150, 0));
+                    signatureLabel.setFont(signatureLabel.getFont().deriveFont(Font.BOLD));
+                } else {
+                    signatureLabel = new JLabel("✗ Invalid - Email may be tampered!");
+                    signatureLabel.setForeground(Color.RED);
+                    signatureLabel.setFont(signatureLabel.getFont().deriveFont(Font.BOLD));
+                }
+            } catch (Exception e) {
+                signatureLabel = new JLabel("⚠️ Cannot verify: " + e.getMessage());
+                signatureLabel.setForeground(Color.ORANGE);
+            }
+        } else {
+            signatureLabel = new JLabel("⚠️ Not signed");
+            signatureLabel.setForeground(Color.GRAY);
+        }
+        detailsPanel.add(signatureLabel);
         
         dialog.add(detailsPanel, BorderLayout.NORTH);
         
@@ -339,13 +409,62 @@ public class MailSender extends JPanel {
 
         Email email = new Email(currentUser, to, subject, body);
         
+        // Detect spam using Naive Bayes
+        NaiveBayesSpamDetector nbDetector = NaiveBayesSpamDetector.getInstance();
+        NaiveBayesSpamDetector.SpamClassification classification = nbDetector.classify(subject, body);
+        boolean isSpam = classification.isSpam;
+        email.setSpam(isSpam);
+        
+        if (isSpam) {
+            String message = String.format(
+                "⚠️ This email is classified as SPAM\n\n" +
+                "Classification: %s\n" +
+                "Spam Probability: %.1f%%\n\n" +
+                "Do you still want to send it?",
+                classification.confidence,
+                classification.score * 100
+            );
+            
+            int result = JOptionPane.showConfirmDialog(this, 
+                message,
+                "Spam Warning - Naive Bayes Classifier", 
+                JOptionPane.YES_NO_OPTION, 
+                JOptionPane.WARNING_MESSAGE);
+            if (result != JOptionPane.YES_OPTION) {
+                return;
+            }
+        }
+        
+        // Generate digital signature
+        try {
+            String contentToSign = subject + body;
+            String signature = DigitalSignatureUtil.sign(contentToSign);
+            email.setDigitalSignature(signature);
+        } catch (Exception e) {
+            // If key files don't exist, generate them
+            try {
+                JOptionPane.showMessageDialog(this, 
+                    "Generating digital signature keys...\nThis will only happen once.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+                KeyPairGeneratorUtil.generateAndSaveKeys();
+                String contentToSign = subject + body;
+                String signature = DigitalSignatureUtil.sign(contentToSign);
+                email.setDigitalSignature(signature);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, 
+                    "Warning: Could not generate digital signature: " + ex.getMessage(),
+                    "Signature Error", JOptionPane.WARNING_MESSAGE);
+            }
+        }
+        
         // Add attachments
         for (File file : attachments) {
             email.addAttachment(file.getAbsolutePath());
         }
 
         if (mailDB.sendEmail(email)) {
-            JOptionPane.showMessageDialog(this, "✓ Mail sent successfully!");
+            String spamWarning = isSpam ? " (marked as spam)" : "";
+            JOptionPane.showMessageDialog(this, "✓ Mail sent successfully!" + spamWarning);
             clearForm();
             refreshSent();
         } else {
